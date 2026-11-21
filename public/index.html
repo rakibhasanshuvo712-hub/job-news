@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobNews — Jobs, Exam Notices & Career News in Bangladesh</title>
+  <meta name="description" content="Latest job circulars, exam notices and career news. Government, banking, IT, NGO and private jobs — updated daily.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="logo" href="/"><span class="logo-badge">JN</span><span class="word">JobNews</span></a>
+      <button class="menu-toggle" aria-label="Menu">☰</button>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/jobs.html">Jobs</a>
+        <a href="/news.html">News</a>
+        <a href="/admin.html" class="btn-ghost-admin">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Find your next job.<br>Stay ahead with career news.</h1>
+        <p class="lead">Government circulars, bank jobs, IT openings, exam dates and preparation news — all in one place, updated daily.</p>
+        <div class="hero-stats">
+          <div class="hero-stat"><b id="stat-jobs">—</b><span>Active jobs</span></div>
+          <div class="hero-stat"><b id="stat-companies">—</b><span>Organizations</span></div>
+          <div class="hero-stat"><b id="stat-articles">—</b><span>News articles</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="container">
+      <form class="search-panel" id="search-form" action="/jobs.html" method="get">
+        <input type="search" name="q" placeholder="Job title or company — e.g. officer, developer, bank" aria-label="Search jobs">
+        <select name="category" aria-label="Category">
+          <option value="">All categories</option>
+        </select>
+        <input type="text" name="location" placeholder="Location (e.g. Dhaka)" aria-label="Location">
+        <button class="btn btn-primary" type="submit">🔍 Search</button>
+      </form>
+    </div>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Browse by category</h2>
+            <div class="sub">Open positions by sector, counted live from the database</div>
+          </div>
+        </div>
+        <div class="cat-grid" id="cat-grid"><div class="skeleton">Loading categories…</div></div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Featured & closing soon</h2>
+            <div class="sub">Hand-picked circulars with deadlines you should not miss</div>
+          </div>
+          <a class="btn btn-outline" href="/jobs.html">View all jobs →</a>
+        </div>
+        <div class="job-grid" id="featured-grid"><div class="skeleton">Loading jobs…</div></div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Latest career news</h2>
+            <div class="sub">Exam dates, circulars and career advice from the JobNews desk</div>
+          </div>
+          <a class="btn btn-outline" href="/news.html">All news →</a>
+        </div>
+        <div class="news-grid" id="news-grid"><div class="skeleton">Loading news…</div></div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="newsletter">
+          <div>
+            <h2>Get job alerts in your inbox</h2>
+            <p>One email per week with the circulars that matter. No spam, unsubscribe anytime.</p>
+          </div>
+          <form id="subscribe-form">
+            <input type="email" id="subscribe-email" placeholder="you@example.com" required aria-label="Email">
+            <button class="btn btn-accent" type="submit">Subscribe</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="foot-grid">
+        <div>
+          <a class="logo" href="/" style="color:#fff"><span class="logo-badge">JN</span><span class="word">JobNews</span></a>
+          <p style="margin-top:12px;font-size:14px;max-width:300px">Bangladesh's job portal for circulars, exam notices and career news. Built with Node.js, SQLite and vanilla JavaScript.</p>
+        </div>
+        <div>
+          <h4>Explore</h4>
+          <a href="/jobs.html">All jobs</a>
+          <a href="/news.html">Career news</a>
+          <a href="/jobs.html?category=government">Government jobs</a>
+          <a href="/jobs.html?category=it-software">IT jobs</a>
+        </div>
+        <div>
+          <h4>Employers</h4>
+          <a href="/admin.html">Post a job</a>
+          <a href="/admin.html">Manage applications</a>
+        </div>
+        <div>
+          <h4>About</h4>
+          <a href="#">Contact us</a>
+          <a href="#">Privacy policy</a>
+          <a href="#">Terms of use</a>
+        </div>
+      </div>
+      <div class="foot-note">
+        <span>© 2026 JobNews. Demo project — data is illustrative.</span>
+        <span>Made with Node.js + SQLite</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+  <script>
+    (async () => {
+      // stats
+      try {
+        const s = await api('/api/stats');
+        qs('#stat-jobs').textContent = s.activeJobs;
+        qs('#stat-companies').textContent = s.companies;
+        qs('#stat-articles').textContent = s.articles;
+      } catch { /* ignore */ }
+
+      // categories
+      try {
+        const { categories } = await api('/api/categories');
+        qs('#cat-grid').innerHTML = categories.map(c => `
+          <a class="cat-card" href="/jobs.html?category=${c.slug}">
+            <div class="ic">${CAT_FALLBACK_ICONS[c.name] || '💼'}</div>
+            <b>${esc(c.name)}</b>
+            <span>${c.jobCount} job${c.jobCount === 1 ? '' : 's'}</span>
+          </a>`).join('');
+        qs('#search-form select').innerHTML = '<option value="">All categories</option>' +
+          categories.map(c => `<option value="${c.slug}">${esc(c.name)}</option>`).join('');
+      } catch { qs('#cat-grid').innerHTML = '<div class="skeleton">Failed to load categories.</div>'; }
+
+      // featured jobs
+      try {
+        const { jobs } = await api('/api/jobs?limit=6');
+        qs('#featured-grid').innerHTML = jobs.map(jobCard).join('');
+      } catch { qs('#featured-grid').innerHTML = '<div class="skeleton">Failed to load jobs.</div>'; }
+
+      // news
+      try {
+        const { news } = await api('/api/news?limit=3');
+        qs('#news-grid').innerHTML = news.map(newsCard).join('');
+      } catch { qs('#news-grid').innerHTML = '<div class="skeleton">Failed to load news.</div>'; }
+
+      // subscribe
+      qs('#subscribe-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = qs('#subscribe-form button'); btn.disabled = true;
+        try {
+          const r = await api('/api/subscribe', { method: 'POST', body: JSON.stringify({ email: qs('#subscribe-email').value }) });
+          toast(r.message || 'Subscribed! 🎉');
+          qs('#subscribe-email').value = '';
+        } catch (err) { toast(err.message, 3400); }
+        btn.disabled = false;
+      });
+    })();
+  </script>
+</body>
+</html>

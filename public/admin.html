@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — JobNews</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="logo" href="/"><span class="logo-badge">JN</span><span class="word">JobNews</span></a>
+      <button class="menu-toggle" aria-label="Menu">☰</button>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/jobs.html">Jobs</a>
+        <a href="/news.html">News</a>
+        <a href="/admin.html">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="section">
+      <div class="container admin-wrap">
+
+        <!-- ===== Login view ===== -->
+        <div class="panel admin-login" id="login-view">
+          <h2 style="margin-bottom:6px">🔐 Admin sign in</h2>
+          <p style="color:var(--ink-soft);font-size:14px;margin-bottom:18px">Manage jobs, applications and subscribers. Demo credentials: <code>admin / admin123</code></p>
+          <form class="form-grid" id="login-form">
+            <div><label for="l-user">Username</label><input id="l-user" required autocomplete="username"></div>
+            <div><label for="l-pass">Password</label><input id="l-pass" type="password" required autocomplete="current-password"></div>
+            <div class="form-msg" id="login-msg"></div>
+            <button class="btn btn-primary" type="submit">Sign in</button>
+          </form>
+        </div>
+
+        <!-- ===== Dashboard view ===== -->
+        <div id="dash-view" style="display:none">
+          <div class="section-head" style="margin-top:10px">
+            <div>
+              <h2>Admin dashboard</h2>
+              <div class="sub">Signed in as <b id="whoami">…</b></div>
+            </div>
+            <button class="btn btn-outline btn-sm" id="logout-btn">Sign out</button>
+          </div>
+
+          <div class="stat-cards" id="stat-cards"></div>
+
+          <div class="admin-tabs">
+            <button data-tab="post" class="active">➕ Post a job</button>
+            <button data-tab="apps">📨 Applications</button>
+            <button data-tab="subs">👥 Subscribers</button>
+            <button data-tab="manage">🗂️ Manage jobs</button>
+          </div>
+
+          <!-- post job -->
+          <div id="tab-post" class="tab-panel">
+            <div class="panel">
+              <h2>New job circular</h2>
+              <form class="form-grid" id="job-form">
+                <div class="form-row">
+                  <div><label for="j-title">Job title *</label><input id="j-title" required maxlength="150" placeholder="e.g. Assistant Manager (Finance)"></div>
+                  <div><label for="j-company">Company *</label><input id="j-company" required maxlength="100" placeholder="e.g. ABC Bank PLC"></div>
+                </div>
+                <div class="form-row">
+                  <div><label for="j-cat">Category *</label><select id="j-cat" required></select></div>
+                  <div><label for="j-loc">Location</label><input id="j-loc" maxlength="100" placeholder="Dhaka"></div>
+                </div>
+                <div class="form-row">
+                  <div><label for="j-type">Job type</label>
+                    <select id="j-type">
+                      <option>Full-time</option><option>Part-time</option><option>Contract</option>
+                      <option>Internship</option><option>Remote</option>
+                    </select></div>
+                  <div><label for="j-salary">Salary</label><input id="j-salary" maxlength="100" placeholder="Negotiable"></div>
+                </div>
+                <div class="form-row">
+                  <div><label for="j-vac">Vacancies</label><input id="j-vac" type="number" min="1" value="1"></div>
+                  <div><label for="j-deadline">Deadline *</label><input id="j-deadline" type="date" required></div>
+                </div>
+                <div><label for="j-desc">Job description</label><textarea id="j-desc" maxlength="5000" placeholder="Key responsibilities, benefits, posting details…"></textarea></div>
+                <div><label for="j-req">Requirements</label><textarea id="j-req" maxlength="5000" placeholder="Education, experience, age limit…"></textarea></div>
+                <div><label for="j-how">How to apply</label><textarea id="j-how" maxlength="2000" placeholder="Portal link / email / postal address…"></textarea></div>
+                <div><label style="display:flex;align-items:center;gap:8px;font-weight:600"><input type="checkbox" id="j-featured" style="width:auto"> Mark as featured</label></div>
+                <div class="form-msg" id="job-msg"></div>
+                <button class="btn btn-primary" type="submit" id="job-btn" style="justify-self:start">Publish job</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- applications -->
+          <div id="tab-apps" class="tab-panel" style="display:none">
+            <div class="table-wrap"><table class="data" id="apps-table">
+              <thead><tr><th>#</th><th>Applicant</th><th>Contact</th><th>Job</th><th>Applied</th><th>Cover letter</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table></div>
+          </div>
+
+          <!-- subscribers -->
+          <div id="tab-subs" class="tab-panel" style="display:none">
+            <div class="table-wrap"><table class="data" id="subs-table">
+              <thead><tr><th>#</th><th>Email</th><th>Subscribed at</th></tr></thead>
+              <tbody></tbody>
+            </table></div>
+          </div>
+
+          <!-- manage jobs -->
+          <div id="tab-manage" class="tab-panel" style="display:none">
+            <div class="table-wrap"><table class="data" id="jobs-table">
+              <thead><tr><th>#</th><th>Title</th><th>Company</th><th>Deadline</th><th>Apps</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/app.js"></script>
+  <script>
+    let categories = [];
+
+    function authed() { return !!localStorage.getItem('jn_token'); }
+
+    function show(view) {
+      qs('#login-view').style.display = view === 'login' ? '' : 'none';
+      qs('#dash-view').style.display = view === 'dash' ? '' : 'none';
+    }
+
+    async function loadDash() {
+      show('dash');
+      try {
+        const me = await api('/api/auth/me');
+        qs('#whoami').textContent = me.username;
+      } catch { logout(); return; }
+
+      const s = await api('/api/admin/stats');
+      qs('#stat-cards').innerHTML = `
+        <div class="stat-card"><b>${s.jobs}</b><span>Jobs published</span></div>
+        <div class="stat-card"><b>${s.applications}</b><span>Applications</span></div>
+        <div class="stat-card"><b>${s.subscribers}</b><span>Subscribers</span></div>
+        <div class="stat-card"><b>${s.news}</b><span>News articles</span></div>`;
+
+      ({ categories } = await api('/api/categories'));
+      loadApps(); loadSubs(); loadJobs();
+    }
+
+    async function loadApps() {
+      const { applications } = await api('/api/admin/applications');
+      qs('#apps-table tbody').innerHTML = applications.length ? applications.map(a => `
+        <tr><td>${a.id}</td><td><b>${esc(a.fullName)}</b></td>
+        <td>${esc(a.email)}<br><small style="color:var(--ink-soft)">${esc(a.phone)}</small></td>
+        <td>${esc(a.jobTitle)}<br><small style="color:var(--ink-soft)">${esc(a.company)}</small></td>
+        <td style="white-space:nowrap">${fmtDate(a.createdAt)}</td>
+        <td style="max-width:260px"><small>${esc(a.coverLetter ? a.coverLetter.slice(0, 140) + (a.coverLetter.length > 140 ? '…' : '') : '—')}</small></td>
+        <td><button class="btn btn-danger btn-sm" data-del-app="${a.id}">Delete</button></td></tr>`).join('')
+        : '<tr><td colspan="7" class="empty-state">No applications yet.</td></tr>';
+      qsa('[data-del-app]').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm(`Delete application #${b.dataset.delApp}?`)) return;
+        try {
+          await api('/api/admin/applications/' + b.dataset.delApp, { method: 'DELETE' });
+          toast('Application deleted');
+          loadApps();
+        } catch (err) { toast(err.message, 3400); }
+      }));
+    }
+
+    async function loadSubs() {
+      const { subscribers } = await api('/api/admin/subscribers');
+      qs('#subs-table tbody').innerHTML = subscribers.length ? subscribers.map(s => `
+        <tr><td>${s.id}</td><td>${esc(s.email)}</td><td>${fmtDate(s.createdAt)}</td></tr>`).join('')
+        : '<tr><td colspan="3" class="empty-state">No subscribers yet.</td></tr>';
+    }
+
+    async function loadJobs() {
+      const { jobs } = await api('/api/jobs?limit=100');
+      qs('#jobs-table tbody').innerHTML = jobs.length ? jobs.map(j => `
+        <tr><td>${j.id}</td><td><b>${esc(j.title)}</b></td><td>${esc(j.company)}</td>
+        <td style="white-space:nowrap">${fmtDate(j.deadline)}</td><td>${j.applications}</td>
+        <td><button class="btn btn-danger btn-sm" data-del="${j.id}" data-title="${esc(j.title)}">Delete</button></td></tr>`).join('')
+        : '<tr><td colspan="6" class="empty-state">No jobs yet.</td></tr>';
+      qsa('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm(`Delete "${b.dataset.title}"? This also removes its applications.`)) return;
+        try {
+          await api('/api/admin/jobs/' + b.dataset.del, { method: 'DELETE' });
+          toast('Job deleted');
+          loadJobs(); loadApps();
+        } catch (err) { toast(err.message, 3400); }
+      }));
+    }
+
+    async function logout() {
+      try { await api('/api/auth/logout', { method: 'POST' }); } catch {}
+      localStorage.removeItem('jn_token');
+      show('login');
+    }
+
+    // ---- login form ----
+    qs('#login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = qs('#login-msg');
+      try {
+        const r = await api('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ username: qs('#l-user').value, password: qs('#l-pass').value }),
+        });
+        localStorage.setItem('jn_token', r.token);
+        toast('Welcome back, ' + r.username);
+        loadDash();
+      } catch (err) { setMsg(msg, 'err', '⚠️ ' + err.message); }
+    });
+    qs('#logout-btn').addEventListener('click', logout);
+
+    // ---- tabs ----
+    qsa('.admin-tabs button').forEach(b => b.addEventListener('click', () => {
+      qsa('.admin-tabs button').forEach(x => x.classList.toggle('active', x === b));
+      qsa('.tab-panel').forEach(p => p.style.display = 'none');
+      qs('#tab-' + b.dataset.tab).style.display = '';
+    }));
+
+    // ---- post job ----
+    qs('#job-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = qs('#job-msg'); const btn = qs('#job-btn');
+      btn.disabled = true; btn.textContent = 'Publishing…';
+      try {
+        const r = await api('/api/admin/jobs', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: qs('#j-title').value, company: qs('#j-company').value,
+            categoryId: qs('#j-cat').value, location: qs('#j-loc').value,
+            jobType: qs('#j-type').value, salary: qs('#j-salary').value,
+            vacancies: qs('#j-vac').value, deadline: qs('#j-deadline').value,
+            description: qs('#j-desc').value, requirements: qs('#j-req').value,
+            howToApply: qs('#j-how').value, featured: qs('#j-featured').checked,
+          }),
+        });
+        setMsg(msg, 'ok', `✅ Job published (id ${r.jobId}). <a href="/job.html?id=${r.jobId}">View it →</a>`);
+        qs('#job-form').reset();
+        qs('#j-vac').value = 1;
+        loadJobs();
+      } catch (err) { setMsg(msg, 'err', '⚠️ ' + err.message); }
+      btn.disabled = false; btn.textContent = 'Publish job';
+    });
+
+    // ---- boot ----
+    (async () => {
+      const d = new Date(Date.now() + 86400000 * 14);
+      qs('#j-deadline').value = d.toISOString().slice(0, 10);
+      qs('#j-deadline').min = new Date().toISOString().slice(0, 10);
+      if (authed()) loadDash(); else show('login');
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Browse Jobs — JobNews</title>
+  <meta name="description" content="Browse all active job circulars by category, location and keyword.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="logo" href="/"><span class="logo-badge">JN</span><span class="word">JobNews</span></a>
+      <button class="menu-toggle" aria-label="Menu">☰</button>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/jobs.html">Jobs</a>
+        <a href="/news.html">News</a>
+        <a href="/admin.html" class="btn-ghost-admin">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="page-hero">
+      <div class="container">
+        <h1>Browse jobs</h1>
+        <p id="result-count">Loading jobs…</p>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="container">
+        <form class="filter-bar" id="filter-form">
+          <input type="search" id="f-q" placeholder="Search title or company…">
+          <select id="f-category"><option value="">All categories</option></select>
+          <input type="text" id="f-location" placeholder="Location…">
+          <select id="f-status">
+            <option value="">Open & closed</option>
+            <option value="open">Open only</option>
+          </select>
+          <button class="btn btn-primary btn-sm" type="submit">Apply filters</button>
+          <button class="btn btn-outline btn-sm" type="button" id="f-reset">Reset</button>
+        </form>
+
+        <div class="cat-pills" id="cat-pills"></div>
+        <div class="job-grid" id="jobs-grid"><div class="skeleton">Loading jobs…</div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container foot-note" style="margin:0;border:0">
+      <span>© 2026 JobNews. Demo project.</span>
+      <span><a href="/" style="display:inline">← Back to home</a></span>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let activeCategory = params.get('category') || '';
+
+    async function loadCategories() {
+      const { categories } = await api('/api/categories');
+      qs('#f-category').innerHTML = '<option value="">All categories</option>' +
+        categories.map(c => `<option value="${c.slug}" ${c.slug === activeCategory ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+      qs('#cat-pills').innerHTML =
+        `<button type="button" data-slug="" class="${activeCategory === '' ? 'active' : ''}">All</button>` +
+        categories.map(c => `<button type="button" data-slug="${c.slug}" class="${c.slug === activeCategory ? 'active' : ''}">${esc(c.name)} (${c.jobCount})</button>`).join('');
+      qsa('#cat-pills button').forEach(b => b.addEventListener('click', () => {
+        activeCategory = b.dataset.slug;
+        qs('#f-category').value = activeCategory;
+        qsa('#cat-pills button').forEach(x => x.classList.toggle('active', x === b));
+        loadJobs();
+      }));
+    }
+
+    async function loadJobs() {
+      const grid = qs('#jobs-grid');
+      grid.innerHTML = '<div class="skeleton">Loading jobs…</div>';
+      const p = new URLSearchParams();
+      const q = qs('#f-q').value.trim();
+      const loc = qs('#f-location').value.trim();
+      const cat = qs('#f-category').value;
+      if (q) p.set('q', q);
+      if (loc) p.set('location', loc);
+      if (cat) p.set('category', cat);
+      try {
+        let { jobs } = await api('/api/jobs?' + p.toString());
+        if (qs('#f-status').value === 'open') jobs = jobs.filter(j => j.open);
+        qs('#result-count').textContent = `${jobs.length} job${jobs.length === 1 ? '' : 's'} found`;
+        grid.innerHTML = jobs.length ? jobs.map(jobCard).join('')
+          : '<div class="empty-state" style="grid-column:1/-1"><div class="big">🗂️</div><b>No jobs match your filters</b><p>Try clearing a filter or searching a different keyword.</p></div>';
+      } catch (err) {
+        grid.innerHTML = `<div class="skeleton">${esc(err.message)}</div>`;
+      }
+    }
+
+    qs('#filter-form').addEventListener('submit', (e) => { e.preventDefault(); loadJobs(); });
+    qs('#f-reset').addEventListener('click', () => {
+      qs('#f-q').value = ''; qs('#f-location').value = '';
+      qs('#f-category').value = ''; qs('#f-status').value = '';
+      activeCategory = '';
+      loadCategories().then(() => loadJobs());
+    });
+
+    qs('#f-q').value = params.get('q') || '';
+    qs('#f-location').value = params.get('location') || '';
+    loadCategories().then(loadJobs).catch(() => {
+      qs('#jobs-grid').innerHTML = '<div class="skeleton">Failed to load jobs.</div>';
+    });
+  </script>
+</body>
+</html>

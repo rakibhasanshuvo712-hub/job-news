@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Job details — JobNews</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="logo" href="/"><span class="logo-badge">JN</span><span class="word">JobNews</span></a>
+      <button class="menu-toggle" aria-label="Menu">☰</button>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/jobs.html">Jobs</a>
+        <a href="/news.html">News</a>
+        <a href="/admin.html" class="btn-ghost-admin">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <div id="detail-root"><div class="skeleton">Loading job…</div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container foot-note" style="margin:0;border:0">
+      <span>© 2026 JobNews. Demo project.</span>
+      <span><a href="/jobs.html" style="display:inline">← All jobs</a></span>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+  <script>
+    const id = new URLSearchParams(location.search).get('id');
+    let job = null;
+
+    function render() {
+      const open = job.deadline >= new Date().toISOString().slice(0, 10);
+      const left = daysLeft(job.deadline);
+      qs('#detail-root').innerHTML = `
+      <div class="detail-grid">
+        <div style="display:flex;flex-direction:column;gap:22px">
+          <div class="panel">
+            <div class="company-row" style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+              ${logoFor(job.company)}
+              <div>
+                <h1 style="font-size:24px;letter-spacing:-.01em">${esc(job.title)}</h1>
+                <div class="job-company">${esc(job.company)} · ${esc(job.category)}</div>
+              </div>
+            </div>
+            <div class="job-meta" style="margin-bottom:6px">
+              <span class="chip">📍 ${esc(job.location)}</span>
+              <span class="chip">🕒 ${esc(job.jobType)}</span>
+              <span class="chip">👥 ${job.vacancies} vacancy${job.vacancies === 1 ? '' : 's'}</span>
+              ${deadlineChip(job.deadline)}
+              <span class="chip">📨 ${job.applications} application${job.applications === 1 ? '' : 's'} so far</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Job description</h2>
+            <p>${esc(job.description) || 'No description provided.'}</p>
+            <h3>Requirements</h3>
+            <p>${esc(job.requirements) || 'See circular for details.'}</p>
+            <h3>How to apply</h3>
+            <p>${esc(job.howToApply) || 'Apply through the form on this page.'}</p>
+          </div>
+
+          <div class="panel" id="apply-panel">
+            <h2>${open ? 'Apply for this position' : 'Applications are closed'}</h2>
+            ${open ? `
+            <p style="margin-bottom:16px">Fill the form and our desk will forward your application. Deadline: <b>${fmtDate(job.deadline)}</b>${left >= 0 ? ` (${left} day${left === 1 ? '' : 's'} left)` : ''}.</p>
+            <form class="form-grid" id="apply-form">
+              <div class="form-row">
+                <div><label for="a-name">Full name *</label><input id="a-name" required minlength="2" placeholder="e.g. Rakib Hasan"></div>
+                <div><label for="a-phone">Phone *</label><input id="a-phone" required placeholder="e.g. 01712345678"></div>
+              </div>
+              <div><label for="a-email">Email *</label><input id="a-email" type="email" required placeholder="you@example.com"></div>
+              <div><label for="a-cover">Cover letter (optional)</label><textarea id="a-cover" maxlength="4000" placeholder="Briefly tell why you fit this role…"></textarea></div>
+              <div class="form-msg" id="apply-msg"></div>
+              <button class="btn btn-primary" type="submit" id="apply-btn" style="justify-self:start">Submit application</button>
+            </form>` : `
+            <p>The application deadline for this position was <b>${fmtDate(job.deadline)}</b>. Check <a href="/jobs.html">open jobs</a> for similar roles.</p>`}
+          </div>
+        </div>
+
+        <div class="side-panel">
+          <div class="panel">
+            <h2>Job summary</h2>
+            <div class="kv"><b>Category</b><span>${esc(job.category)}</span></div>
+            <div class="kv"><b>Salary</b><span>${esc(job.salary)}</span></div>
+            <div class="kv"><b>Location</b><span>${esc(job.location)}</span></div>
+            <div class="kv"><b>Type</b><span>${esc(job.jobType)}</span></div>
+            <div class="kv"><b>Vacancies</b><span>${job.vacancies}</span></div>
+            <div class="kv"><b>Deadline</b><span>${fmtDate(job.deadline)}</span></div>
+            <div class="kv"><b>Posted</b><span>${fmtDate(job.createdAt)}</span></div>
+          </div>
+          <div class="panel">
+            <h2>Share</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-outline btn-sm" id="copy-link">🔗 Copy link</button>
+              <a class="btn btn-outline btn-sm" href="/jobs.html?category=${encodeURIComponent(job.categorySlug)}">Similar jobs →</a>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+      if (open) {
+        qs('#apply-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const msg = qs('#apply-msg'); const btn = qs('#apply-btn');
+          btn.disabled = true; btn.textContent = 'Submitting…';
+          try {
+            await api('/api/apply', {
+              method: 'POST',
+              body: JSON.stringify({
+                jobId: job.id,
+                fullName: qs('#a-name').value,
+                email: qs('#a-email').value,
+                phone: qs('#a-phone').value,
+                coverLetter: qs('#a-cover').value,
+              }),
+            });
+            setMsg(msg, 'ok', '✅ Application submitted! We will contact you at the given email.');
+            toast('Application submitted 🎉');
+          } catch (err) { setMsg(msg, 'err', '⚠️ ' + err.message); }
+          btn.disabled = false; btn.textContent = 'Submit application';
+        });
+      }
+      qs('#copy-link').addEventListener('click', () => {
+        navigator.clipboard.writeText(location.href).then(() => toast('Link copied'));
+      });
+    }
+
+    (async () => {
+      document.title = 'Job details — JobNews';
+      if (!id) { location.href = '/jobs.html'; return; }
+      try {
+        ({ job } = await api('/api/jobs/' + id));
+        document.title = `${job.title} at ${job.company} — JobNews`;
+        render();
+      } catch (err) {
+        qs('#detail-root').innerHTML = `<div class="empty-state"><div class="big">🔍</div><b>${esc(err.message)}</b><p><a href="/jobs.html">Browse all jobs →</a></p></div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

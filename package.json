@@ -1,0 +1,14 @@
+{
+  "name": "jobnews",
+  "version": "1.0.0",
+  "description": "JobNews — job circulars, exam notices and career news portal (zero-dependency Node + SQLite)",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}
