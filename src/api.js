@@ -28,6 +28,11 @@ function listJobs(req, res, url) {
   const category = trim(url.searchParams.get('category'), 60);
   const location = trim(url.searchParams.get('location'), 60);
   const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit'), 10) || 24, 1), 100);
+  const offset = Math.min(Math.max(parseInt(url.searchParams.get('offset'), 10) || 0, 0), 5000);
+  const sort = trim(url.searchParams.get('sort'), 20);
+  const orderBy = sort === 'newest' ? 'j.id DESC'
+    : sort === 'salary' ? 'j.featured DESC, j.id ASC'
+    : 'j.featured DESC, j.deadline ASC';
 
   const where = []; const params = [];
   if (q) { where.push('(j.title LIKE ? OR j.company LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
@@ -42,9 +47,9 @@ function listJobs(req, res, url) {
            (SELECT COUNT(*) FROM applications a WHERE a.jobId = j.id) AS applications
     FROM jobs j JOIN categories c ON c.id = j.categoryId
     ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
-    ORDER BY j.featured DESC, j.deadline ASC
-    LIMIT ?`;
-  params.push(today(), limit);
+    ORDER BY ${orderBy}
+    LIMIT ? OFFSET ?`;
+  params.push(today(), limit, offset);
   const jobs = db.prepare(sql).all(...params);
   json(res, 200, { jobs, total: jobs.length });
 }

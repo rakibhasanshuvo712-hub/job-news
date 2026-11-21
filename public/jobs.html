@@ -4,8 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Browse Jobs — JobNews</title>
-  <meta name="description" content="Browse all active job circulars by category, location and keyword.">
+  <meta name="description" content="Browse all active job circulars by category, location and keyword. Government, banking, IT, NGO and private sector jobs in Bangladesh.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Browse Jobs — JobNews">
+  <meta property="og:description" content="Browse all active job circulars by category, location and keyword.">
+  <meta property="og:image" content="/favicon.svg">
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -36,16 +44,19 @@
           <input type="search" id="f-q" placeholder="Search title or company…">
           <select id="f-category"><option value="">All categories</option></select>
           <input type="text" id="f-location" placeholder="Location…">
-          <select id="f-status">
-            <option value="">Open & closed</option>
-            <option value="open">Open only</option>
+          <select id="f-sort" aria-label="Sort by">
+            <option value="">Sort: closing soon</option>
+            <option value="newest">Newest posted</option>
           </select>
           <button class="btn btn-primary btn-sm" type="submit">Apply filters</button>
           <button class="btn btn-outline btn-sm" type="button" id="f-reset">Reset</button>
         </form>
 
         <div class="cat-pills" id="cat-pills"></div>
-        <div class="job-grid" id="jobs-grid"><div class="skeleton">Loading jobs…</div></div>
+        <div id="jobs-area"></div>
+        <div style="text-align:center;margin-top:26px">
+          <button class="btn btn-outline" id="load-more" style="display:none">Load more jobs ↓</button>
+        </div>
       </div>
     </section>
   </main>
@@ -60,7 +71,10 @@
   <script src="/js/app.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
+    const PAGE_SIZE = 9;
     let activeCategory = params.get('category') || '';
+    let offset = 0;
+    let lastQuery = null;
 
     async function loadCategories() {
       const { categories } = await api('/api/categories');
@@ -73,43 +87,73 @@
         activeCategory = b.dataset.slug;
         qs('#f-category').value = activeCategory;
         qsa('#cat-pills button').forEach(x => x.classList.toggle('active', x === b));
-        loadJobs();
+        resetAndLoad();
       }));
     }
 
-    async function loadJobs() {
-      const grid = qs('#jobs-grid');
-      grid.innerHTML = '<div class="skeleton">Loading jobs…</div>';
+    function filterQuery() {
       const p = new URLSearchParams();
       const q = qs('#f-q').value.trim();
       const loc = qs('#f-location').value.trim();
       const cat = qs('#f-category').value;
+      const sort = qs('#f-sort').value;
       if (q) p.set('q', q);
       if (loc) p.set('location', loc);
       if (cat) p.set('category', cat);
+      if (sort) p.set('sort', sort);
+      return p;
+    }
+
+    function renderJobs(jobs, append) {
+      const area = qs('#jobs-area');
+      const html = `<div class="job-grid">${jobs.map(jobCard).join('')}</div>`;
+      if (append) area.insertAdjacentHTML('beforeend', html);
+      else area.innerHTML = html;
+    }
+
+    async function loadJobs({ append = false } = {}) {
+      const p = filterQuery();
+      p.set('limit', PAGE_SIZE);
+      p.set('offset', offset);
+      const key = p.toString();
+      if (!append && key === lastQuery) return;
+      lastQuery = key;
+
+      if (!append) {
+        qs('#jobs-area').innerHTML = skeletonCards(PAGE_SIZE);
+        qs('#load-more').style.display = 'none';
+      }
       try {
-        let { jobs } = await api('/api/jobs?' + p.toString());
-        if (qs('#f-status').value === 'open') jobs = jobs.filter(j => j.open);
-        qs('#result-count').textContent = `${jobs.length} job${jobs.length === 1 ? '' : 's'} found`;
-        grid.innerHTML = jobs.length ? jobs.map(jobCard).join('')
-          : '<div class="empty-state" style="grid-column:1/-1"><div class="big">🗂️</div><b>No jobs match your filters</b><p>Try clearing a filter or searching a different keyword.</p></div>';
+        const { jobs } = await api('/api/jobs?' + p.toString());
+        if (append) renderJobs(jobs, true);
+        else {
+          renderJobs(jobs);
+          qs('#result-count').textContent = `${jobs.length} job${jobs.length === 1 ? '' : 's'} on this page${jobs.length === PAGE_SIZE ? ' — load more below' : ''}`;
+          if (!jobs.length) qs('#jobs-area').innerHTML =
+            '<div class="empty-state"><div class="big">🗂️</div><b>No jobs match your filters</b><p>Try clearing a filter or searching a different keyword.</p></div>';
+        }
+        qs('#load-more').style.display = jobs.length === PAGE_SIZE ? '' : 'none';
       } catch (err) {
-        grid.innerHTML = `<div class="skeleton">${esc(err.message)}</div>`;
+        qs('#jobs-area').innerHTML = `<div class="skeleton">${esc(err.message)}</div>`;
       }
     }
 
-    qs('#filter-form').addEventListener('submit', (e) => { e.preventDefault(); loadJobs(); });
+    function resetAndLoad() { offset = 0; lastQuery = null; loadJobs(); }
+
+    qs('#filter-form').addEventListener('submit', (e) => { e.preventDefault(); resetAndLoad(); });
+    qs('#f-sort').addEventListener('change', resetAndLoad);
+    qs('#load-more').addEventListener('click', () => { offset += PAGE_SIZE; loadJobs({ append: true }); });
     qs('#f-reset').addEventListener('click', () => {
       qs('#f-q').value = ''; qs('#f-location').value = '';
-      qs('#f-category').value = ''; qs('#f-status').value = '';
+      qs('#f-category').value = ''; qs('#f-sort').value = '';
       activeCategory = '';
-      loadCategories().then(() => loadJobs());
+      loadCategories().then(resetAndLoad);
     });
 
     qs('#f-q').value = params.get('q') || '';
     qs('#f-location').value = params.get('location') || '';
-    loadCategories().then(loadJobs).catch(() => {
-      qs('#jobs-grid').innerHTML = '<div class="skeleton">Failed to load jobs.</div>';
+    loadCategories().then(resetAndLoad).catch(() => {
+      qs('#jobs-area').innerHTML = '<div class="skeleton">Failed to load jobs.</div>';
     });
   </script>
 </body>

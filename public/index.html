@@ -6,6 +6,14 @@
   <title>JobNews — Jobs, Exam Notices & Career News in Bangladesh</title>
   <meta name="description" content="Latest job circulars, exam notices and career news. Government, banking, IT, NGO and private jobs — updated daily.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="JobNews — Jobs, Exam Notices & Career News in Bangladesh">
+  <meta property="og:description" content="Find your next job. Stay ahead with career news — government, banking, IT, NGO and private circulars updated daily.">
+  <meta property="og:image" content="/favicon.svg">
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -24,8 +32,11 @@
 
   <main>
     <section class="hero">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
       <div class="container">
-        <h1>Find your next job.<br>Stay ahead with career news.</h1>
+        <h1>Find your next job.<br>Stay ahead with <span class="grad-text">career news.</span></h1>
         <p class="lead">Government circulars, bank jobs, IT openings, exam dates and preparation news — all in one place, updated daily.</p>
         <div class="hero-stats">
           <div class="hero-stat"><b id="stat-jobs">—</b><span>Active jobs</span></div>
@@ -44,48 +55,60 @@
         <input type="text" name="location" placeholder="Location (e.g. Dhaka)" aria-label="Location">
         <button class="btn btn-primary" type="submit">🔍 Search</button>
       </form>
+      <div class="popular-searches">
+        <span>Trending:</span>
+        <a href="/jobs.html?q=officer">Officer</a>
+        <a href="/jobs.html?category=it-software">IT & Software</a>
+        <a href="/jobs.html?q=teacher">Teacher</a>
+        <a href="/jobs.html?category=banking">Bank</a>
+        <a href="/jobs.html?q=nurse">Nurse</a>
+        <a href="/jobs.html?location=Dhaka">Dhaka</a>
+      </div>
     </div>
 
     <section class="section">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <div>
+            <span class="eyebrow">Job seekers</span>
             <h2>Browse by category</h2>
             <div class="sub">Open positions by sector, counted live from the database</div>
           </div>
         </div>
-        <div class="cat-grid" id="cat-grid"><div class="skeleton">Loading categories…</div></div>
+        <div class="cat-grid" id="cat-grid"></div>
       </div>
     </section>
 
     <section class="section" style="padding-top:0">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <div>
+            <span class="eyebrow">Don't miss out</span>
             <h2>Featured & closing soon</h2>
             <div class="sub">Hand-picked circulars with deadlines you should not miss</div>
           </div>
           <a class="btn btn-outline" href="/jobs.html">View all jobs →</a>
         </div>
-        <div class="job-grid" id="featured-grid"><div class="skeleton">Loading jobs…</div></div>
+        <div id="featured-grid"></div>
       </div>
     </section>
 
     <section class="section" style="padding-top:0">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <div>
+            <span class="eyebrow">Stay informed</span>
             <h2>Latest career news</h2>
             <div class="sub">Exam dates, circulars and career advice from the JobNews desk</div>
           </div>
           <a class="btn btn-outline" href="/news.html">All news →</a>
         </div>
-        <div class="news-grid" id="news-grid"><div class="skeleton">Loading news…</div></div>
+        <div class="news-grid" id="news-grid"></div>
       </div>
     </section>
 
     <section class="section" style="padding-top:0">
-      <div class="container">
+      <div class="container newsletter-wrap reveal">
         <div class="newsletter">
           <div>
             <h2>Get job alerts in your inbox</h2>
@@ -104,8 +127,8 @@
     <div class="container">
       <div class="foot-grid">
         <div>
-          <a class="logo" href="/" style="color:#fff"><span class="logo-badge">JN</span><span class="word">JobNews</span></a>
-          <p style="margin-top:12px;font-size:14px;max-width:300px">Bangladesh's job portal for circulars, exam notices and career news. Built with Node.js, SQLite and vanilla JavaScript.</p>
+          <a class="logo" href="/" style="color:#fff"><span class="logo-badge">JN</span><span class="word" style="background:linear-gradient(120deg,#c7d2fe,#67e8f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">JobNews</span></a>
+          <p style="margin-top:14px;font-size:14px;max-width:300px">Bangladesh's job portal for circulars, exam notices and career news. Built with Node.js, SQLite and vanilla JavaScript.</p>
         </div>
         <div>
           <h4>Explore</h4>
@@ -136,6 +159,10 @@
   <script src="/js/app.js"></script>
   <script>
     (async () => {
+      qs('#cat-grid').innerHTML = '<div class="skeleton">Loading categories…</div>';
+      qs('#featured-grid').innerHTML = skeletonCards(6);
+      qs('#news-grid').innerHTML = skeletonCards(3);
+
       // stats
       try {
         const s = await api('/api/stats');
@@ -148,19 +175,20 @@
       try {
         const { categories } = await api('/api/categories');
         qs('#cat-grid').innerHTML = categories.map(c => `
-          <a class="cat-card" href="/jobs.html?category=${c.slug}">
+          <a class="cat-card reveal" href="/jobs.html?category=${c.slug}">
             <div class="ic">${CAT_FALLBACK_ICONS[c.name] || '💼'}</div>
             <b>${esc(c.name)}</b>
             <span>${c.jobCount} job${c.jobCount === 1 ? '' : 's'}</span>
           </a>`).join('');
         qs('#search-form select').innerHTML = '<option value="">All categories</option>' +
           categories.map(c => `<option value="${c.slug}">${esc(c.name)}</option>`).join('');
+        initUiMotion();
       } catch { qs('#cat-grid').innerHTML = '<div class="skeleton">Failed to load categories.</div>'; }
 
       // featured jobs
       try {
         const { jobs } = await api('/api/jobs?limit=6');
-        qs('#featured-grid').innerHTML = jobs.map(jobCard).join('');
+        qs('#featured-grid').innerHTML = `<div class="job-grid">${jobs.map(jobCard).join('')}</div>`;
       } catch { qs('#featured-grid').innerHTML = '<div class="skeleton">Failed to load jobs.</div>'; }
 
       // news

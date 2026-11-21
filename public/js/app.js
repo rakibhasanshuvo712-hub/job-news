@@ -106,6 +106,43 @@ function setMsg(el, type, text) {
   el.textContent = text;
 }
 
+// ---------- skeleton loading placeholders ----------
+function skeletonCards(n = 6, wide = false) {
+  const gridCls = wide ? 'skeleton-grid' : 'skeleton-grid';
+  const card = `<div class="skel">
+    <div class="skel-avatar"></div>
+    <div class="skel-line w-60"></div>
+    <div class="skel-line w-80"></div>
+    <div class="skel-line w-40"></div>
+  </div>`;
+  return `<div class="${gridCls}">${card.repeat(n)}</div>`;
+}
+
+// ---------- reveal on scroll + back-to-top ----------
+function initUiMotion() {
+  const revealEls = qsa('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { e.target.classList.add('reveal-visible'); io.unobserve(e.target); }
+      }
+    }, { threshold: 0.08 });
+    revealEls.forEach(el => io.observe(el));
+  } else {
+    revealEls.forEach(el => el.classList.add('reveal-visible'));
+  }
+
+  const btn = document.createElement('button');
+  btn.className = 'back-top';
+  btn.setAttribute('aria-label', 'Back to top');
+  btn.innerHTML = '↑';
+  btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  document.body.appendChild(btn);
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('show', window.scrollY > 480);
+  }, { passive: true });
+}
+
 // Active nav highlighting
 document.addEventListener('DOMContentLoaded', () => {
   const here = location.pathname.split('/').pop() || 'index.html';
@@ -115,4 +152,5 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const toggle = qs('.menu-toggle');
   if (toggle) toggle.addEventListener('click', () => qs('.nav-links').classList.toggle('open'));
+  initUiMotion();
 });

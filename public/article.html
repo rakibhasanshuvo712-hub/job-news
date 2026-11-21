@@ -4,7 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Article — JobNews</title>
+  <meta name="description" content="Career news article on JobNews — exam notices, industry trends and career advice.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Article — JobNews">
+  <meta property="og:description" content="Career news and exam notices from the JobNews desk.">
+  <meta property="og:image" content="/favicon.svg">
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -44,6 +53,10 @@
       try {
         const { article } = await api('/api/news/' + id);
         document.title = `${article.title} — JobNews`;
+        const ogTitle = qs('meta[property="og:title"]');
+        if (ogTitle) ogTitle.setAttribute('content', document.title);
+        const ogDesc = qs('meta[property="og:description"]');
+        if (ogDesc) ogDesc.setAttribute('content', article.excerpt);
         const paras = article.content.split(/\n\s*\n/).filter(p => p.trim());
         const html = paras.map(p =>
           '<p>' + esc(p).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>') + '</p>'

@@ -4,7 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Job details — JobNews</title>
+  <meta name="description" content="Job circular details, requirements and application form on JobNews.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Job details — JobNews">
+  <meta property="og:description" content="View requirements and apply online on JobNews.">
+  <meta property="og:image" content="/favicon.svg">
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -25,6 +34,7 @@
     <section class="section">
       <div class="container">
         <div id="detail-root"><div class="skeleton">Loading job…</div></div>
+        <div id="related-root"></div>
       </div>
     </section>
   </main>
@@ -41,10 +51,22 @@
     const id = new URLSearchParams(location.search).get('id');
     let job = null;
 
+    // ---- bookmarks (localStorage) ----
+    const saved = () => { try { return JSON.parse(localStorage.getItem('jn_saved') || '[]'); } catch { return []; } };
+    const isSaved = (id) => saved().includes(Number(id));
+    function toggleSave(id) {
+      let list = saved();
+      if (list.includes(Number(id))) { list = list.filter(x => x !== Number(id)); toast('Removed from saved jobs'); }
+      else { list.push(Number(id)); toast('Saved! ★'); }
+      localStorage.setItem('jn_saved', JSON.stringify(list.slice(0, 200)));
+      return list.includes(Number(id));
+    }
+
     function render() {
       const open = job.deadline >= new Date().toISOString().slice(0, 10);
       const left = daysLeft(job.deadline);
       qs('#detail-root').innerHTML = `
+      <div class="breadcrumb"><a href="/">Home</a> › <a href="/jobs.html">Jobs</a> › <a href="/jobs.html?category=${encodeURIComponent(job.categorySlug)}">${esc(job.category)}</a> › ${esc(job.title)}</div>
       <div class="detail-grid">
         <div style="display:flex;flex-direction:column;gap:22px">
           <div class="panel">
@@ -103,8 +125,9 @@
             <div class="kv"><b>Posted</b><span>${fmtDate(job.createdAt)}</span></div>
           </div>
           <div class="panel">
-            <h2>Share</h2>
+            <h2>Actions</h2>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-outline btn-sm" id="save-btn">${isSaved(id) ? '★ Saved' : '☆ Save job'}</button>
               <button class="btn btn-outline btn-sm" id="copy-link">🔗 Copy link</button>
               <a class="btn btn-outline btn-sm" href="/jobs.html?category=${encodeURIComponent(job.categorySlug)}">Similar jobs →</a>
             </div>
@@ -137,6 +160,24 @@
       qs('#copy-link').addEventListener('click', () => {
         navigator.clipboard.writeText(location.href).then(() => toast('Link copied'));
       });
+      qs('#save-btn').addEventListener('click', (e) => {
+        const nowSaved = toggleSave(id);
+        e.currentTarget.textContent = nowSaved ? '★ Saved' : '☆ Save job';
+      });
+    }
+
+    async function loadRelated() {
+      try {
+        let { jobs } = await api(`/api/jobs?category=${encodeURIComponent(job.categorySlug)}&limit=4`);
+        jobs = jobs.filter(j => j.id !== job.id).slice(0, 3);
+        if (!jobs.length) return;
+        qs('#related-root').innerHTML = `
+          <div class="section-head" style="margin-top:48px">
+            <div><span class="eyebrow">You may also like</span><h2>Similar ${esc(job.category)} jobs</h2></div>
+            <a class="btn btn-outline" href="/jobs.html?category=${encodeURIComponent(job.categorySlug)}">View all →</a>
+          </div>
+          <div class="job-grid">${jobs.map(jobCard).join('')}</div>`;
+      } catch { /* related jobs are optional */ }
     }
 
     (async () => {
@@ -146,6 +187,7 @@
         ({ job } = await api('/api/jobs/' + id));
         document.title = `${job.title} at ${job.company} — JobNews`;
         render();
+        loadRelated();
       } catch (err) {
         qs('#detail-root').innerHTML = `<div class="empty-state"><div class="big">🔍</div><b>${esc(err.message)}</b><p><a href="/jobs.html">Browse all jobs →</a></p></div>`;
       }
